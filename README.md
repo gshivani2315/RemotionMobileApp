@@ -1,16 +1,37 @@
-# remotion_app
+# ReMotion – Patient Companion App
 
-A new Flutter project.
+A simple mobile app that helps patients stay consistent with their rehabilitation schedule and stay connected with their clinic.
 
-## Getting Started
+## Key Features
 
-This project is a starting point for a Flutter application.
+### 📅 Smart Scheduling
 
-A few resources to get you started if this is your first Flutter project:
+- View upcoming rehab sessions
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Weekly exercise plan
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Reschedule when needed
+
+### 🔔 Reminders & Alerts
+
+- Session reminders
+
+- Missed session notifications
+
+- Alerts when the physiotherapist is waiting
+
+### 📊 Progress Tracking
+
+- Sessions completed
+
+- Recovery progress trends
+
+- Physiotherapist notes
+
+### 🔥 Adherence Motivation
+
+- Daily streak tracking
+
+- Session completion stats
+
+- Encouragement to stay consistent
