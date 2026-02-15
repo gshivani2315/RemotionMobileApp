@@ -32,26 +32,15 @@ final ThemeData reMotionTheme = ThemeData(
       fontSize: 18,
       fontWeight: FontWeight.w500,
     ),
-    bodyLarge: TextStyle(
-      color: Color(0xFF1E6F6B),
-      fontSize: 16,
-    ),
-    bodyMedium: TextStyle(
-      color: Color(0xFF1E6F6B),
-      fontSize: 14,
-    ),
-    bodySmall: TextStyle(
-      color: Color(0xFF9AA5A1),
-      fontSize: 12,
-    ),
+    bodyLarge: TextStyle(color: Color(0xFF1E6F6B), fontSize: 16),
+    bodyMedium: TextStyle(color: Color(0xFF1E6F6B), fontSize: 14),
+    bodySmall: TextStyle(color: Color(0xFF9AA5A1), fontSize: 12),
   ),
-  cardTheme: CardTheme(
+  cardTheme: CardThemeData(
     color: Colors.white,
     elevation: 1,
     shadowColor: Colors.black12,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
@@ -59,13 +48,8 @@ final ThemeData reMotionTheme = ThemeData(
       backgroundColor: const Color(0xFF1E6F6B),
       foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      textStyle: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
     ),
   ),
   progressIndicatorTheme: const ProgressIndicatorThemeData(
@@ -139,7 +123,13 @@ class DashboardPage extends StatelessWidget {
 
   Widget _buildTodayStatusCard(BuildContext context) {
     final now = DateTime.now();
-    final nextSession = DateTime(now.year, now.month, now.day + 1, 10, 0); // example
+    final nextSession = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+      10,
+      0,
+    ); // example
 
     final isCompletedToday = true; // ← connect to real data later
     final hasMissed = false;
@@ -158,23 +148,37 @@ class DashboardPage extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (isCompletedToday)
-                  const Icon(Icons.check_circle, color: Color(0xFF2FB7A3), size: 28)
+                  const Icon(
+                    Icons.check_circle,
+                    color: Color(0xFF2FB7A3),
+                    size: 28,
+                  )
                 else
-                  const Icon(Icons.pending_outlined, color: Colors.orange, size: 28),
+                  const Icon(
+                    Icons.pending_outlined,
+                    color: Colors.orange,
+                    size: 28,
+                  ),
               ],
             ),
             const SizedBox(height: 16),
 
             Row(
               children: [
-                const Icon(Icons.access_time_rounded, size: 20, color: Color(0xFF9AA5A1)),
+                const Icon(
+                  Icons.access_time_rounded,
+                  size: 20,
+                  color: Color(0xFF9AA5A1),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   isCompletedToday ? "Completed" : "Pending",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: isCompletedToday ? const Color(0xFF2FB7A3) : Colors.orange[800],
+                    color: isCompletedToday
+                        ? const Color(0xFF2FB7A3)
+                        : Colors.orange[800],
                   ),
                 ),
               ],
@@ -183,7 +187,11 @@ class DashboardPage extends StatelessWidget {
 
             Row(
               children: [
-                const Icon(Icons.calendar_today_outlined, size: 20, color: Color(0xFF9AA5A1)),
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 20,
+                  color: Color(0xFF9AA5A1),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   "Next: ${DateFormat('EEE h:mm a').format(nextSession)}",
@@ -196,7 +204,11 @@ class DashboardPage extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     "You missed a session yesterday",
@@ -224,7 +236,11 @@ class DashboardPage extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.local_fire_department, color: Color(0xFFC8A96A), size: 28),
+                const Icon(
+                  Icons.local_fire_department,
+                  color: Color(0xFFC8A96A),
+                  size: 28,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   "$streak-day streak",
@@ -264,7 +280,10 @@ class DashboardPage extends StatelessWidget {
             const SizedBox(height: 12),
             const Text(
               "You're doing great! Keep the momentum going 💪",
-              style: TextStyle(color: Color(0xFF2FB7A3), fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Color(0xFF2FB7A3),
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -275,7 +294,8 @@ class DashboardPage extends StatelessWidget {
   Widget _buildRecoverySnapshotCard() {
     const progressStatus = "Improving";
     const painTrend = "Decreasing";
-    const physioNote = "Good progress on knee flexion. Continue with exercises.";
+    const physioNote =
+        "Good progress on knee flexion. Continue with exercises.";
 
     return Card(
       child: Padding(
@@ -283,19 +303,29 @@ class DashboardPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Recovery Snapshot", style: reMotionTheme.textTheme.titleMedium),
+            Text(
+              "Recovery Snapshot",
+              style: reMotionTheme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 16),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildMiniStat("Progress", progressStatus, const Color(0xFF2FB7A3)),
+                _buildMiniStat(
+                  "Progress",
+                  progressStatus,
+                  const Color(0xFF2FB7A3),
+                ),
                 _buildMiniStat("Pain", painTrend, const Color(0xFF2FB7A3)),
               ],
             ),
 
             const SizedBox(height: 16),
-            const Text("Latest note from physiotherapist:", style: TextStyle(fontWeight: FontWeight.w500)),
+            const Text(
+              "Latest note from physiotherapist:",
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
             const SizedBox(height: 6),
             Text(physioNote, style: reMotionTheme.textTheme.bodyMedium),
           ],
@@ -307,7 +337,10 @@ class DashboardPage extends StatelessWidget {
   Widget _buildMiniStat(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFF9AA5A1), fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(color: Color(0xFF9AA5A1), fontSize: 13),
+        ),
         const SizedBox(height: 4),
         Text(
           value,
@@ -328,12 +361,23 @@ class DashboardPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Upcoming Sessions", style: reMotionTheme.textTheme.titleMedium),
+            Text(
+              "Upcoming Sessions",
+              style: reMotionTheme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 16),
 
-            _buildSessionTile("Tomorrow", "10:00 AM", "Home Exercise – Knee Mobility"),
+            _buildSessionTile(
+              "Tomorrow",
+              "10:00 AM",
+              "Home Exercise – Knee Mobility",
+            ),
             const Divider(height: 28),
-            _buildSessionTile("Thu, Feb 19", "11:30 AM", "Clinic Visit – Dr. Sharma"),
+            _buildSessionTile(
+              "Thu, Feb 19",
+              "11:30 AM",
+              "Clinic Visit – Dr. Sharma",
+            ),
 
             const SizedBox(height: 16),
             SizedBox(
@@ -345,7 +389,9 @@ class DashboardPage extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFF1E6F6B)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text("View Full Schedule"),
               ),
@@ -362,8 +408,14 @@ class DashboardPage extends StatelessWidget {
       children: [
         Column(
           children: [
-            Text(day, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-            Text(time, style: const TextStyle(color: Color(0xFF9AA5A1), fontSize: 13)),
+            Text(
+              day,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+            Text(
+              time,
+              style: const TextStyle(color: Color(0xFF9AA5A1), fontSize: 13),
+            ),
           ],
         ),
         const SizedBox(width: 16),
@@ -430,7 +482,9 @@ class DashboardPage extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           child: Row(
-            mainAxisAlignment: fullWidth ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: fullWidth
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
               Icon(icon, color: color, size: 22),
               if (!fullWidth) const SizedBox(width: 12),
