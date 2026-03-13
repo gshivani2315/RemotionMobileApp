@@ -1,7 +1,4 @@
 import express from "express";
-// verifyToken is NOT imported here — app.js already applies it
-// to the entire /api/dashboard prefix before requests reach this router.
-// Adding it again here would verify the token twice unnecessarily.
 
 const dashboardRouter = express.Router();
 
