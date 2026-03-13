@@ -15,6 +15,7 @@ import { apiLimiter } from "./middleware/rateLimiter.js";
 import { verifyToken } from "./middleware/authMiddleware.js";
 import { getProfile } from "./controllers/userController.js";
 import dashboardRouter from "./routes/dashboard.js";
+import progressRouter from "./routes/progress.js";
 
 const app = express();
 const PORT = process.env.PORT;
@@ -30,9 +31,15 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin && process.env.NODE_ENV !== "production") {
+      // Allow requests with no origin (mobile apps, curl)
+      if (!origin) return callback(null, true);
+      
+      // Allow all localhost ports in development
+      if (process.env.NODE_ENV !== "production" && 
+          origin.startsWith("http://localhost")) {
         return callback(null, true);
       }
+
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -52,14 +59,14 @@ app.get("/", (req, res) => res.send("ReMotion API is running."));
 // Protected
 app.get("/api/profile", verifyToken, getProfile);
 app.use("/api/dashboard", verifyToken, dashboardRouter);
-
+app.use("/api/progress", verifyToken, progressRouter);
 // 404
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found." });
 });
 
 // Global error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error("Unhandled error:", err.message);
   res.status(500).json({ error: "Internal server error." });
 });
