@@ -14,3 +14,5 @@ key.properties
 **/*.jks
 
 app/google-services.json
+# Firebase
+lib/firebase_options.dart
