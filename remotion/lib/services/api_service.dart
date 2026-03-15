@@ -4,10 +4,13 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ApiService {
-  // FIX 1: Consistent baseUrl — use kIsWeb to handle web vs emulator
+  // FIX 1: Consistent baseUrl — use kIsWeb and defaultTargetPlatform to handle all platforms
   static String get _baseUrl {
-    if (kIsWeb) return 'http://localhost:3000';
-    return 'http://10.0.2.2:3000'; // Android emulator → host machine
+    if (kIsWeb) return 'http://localhost:3001';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3001'; // Android emulator → host machine
+    }
+    return 'http://localhost:3001'; // Windows, Mac, Linux
   }
 
   Future<String?> _getAuthToken() async {

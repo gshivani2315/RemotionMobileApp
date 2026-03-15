@@ -52,19 +52,19 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
   late Future<Map<String, dynamic>?> _profileFuture;
-  // late Future<Map<String, dynamic>?> _statsFuture; // ADDED
+  late Future<Map<String, dynamic>?> _statsFuture;
 
   @override
   void initState() {
     super.initState();
     _profileFuture = _apiService.getProtectedData();
-    // _statsFuture = _apiService.getDashboardStats(); // ADDED
+    _statsFuture = _apiService.getDashboardStats();
   }
 
   void _retryConnection() {
     setState(() {
       _profileFuture = _apiService.getProtectedData();
-      // _statsFuture = _apiService.getDashboardStats(); // ADDED
+      _statsFuture = _apiService.getDashboardStats();
     });
   }
 
@@ -111,7 +111,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ],
         ),
         body: FutureBuilder<Map<String, dynamic>?>(
-          future: _profileFuture,
+          future: _statsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -158,15 +158,21 @@ class _DashboardPageState extends State<DashboardPage> {
               );
             }
 
-            final data = snapshot.data!;
-            return _buildDashboardContent(data['email'] ?? 'User');
+            final stats = snapshot.data!['data'];
+            final userName = stats?['userName'] ?? 'User';
+            final physioName = stats?['physioName'] ?? 'Not Assigned';
+            final streak = (stats?['streak'] ?? 0) as int;
+            final nextSession = stats?['nextSession'] as String? ?? 'No session scheduled';
+            final recovery = (stats?['recoveryProgress'] ?? 0.0).toDouble();
+
+            return _buildDashboardContent(userName, physioName, streak, nextSession, recovery);
           },
         ),
       ),
     );
   }
 
-  Widget _buildDashboardContent(String userEmail) {
+  Widget _buildDashboardContent(String userName, String physioName, int streak, String nextSession, double recovery) {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -176,30 +182,14 @@ class _DashboardPageState extends State<DashboardPage> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                "Welcome back,\n$userEmail",
+                "Welcome back,\n$userName",
                 style: reMotionTheme.textTheme.titleLarge,
               ),
             ),
             _buildTodayStatusCard(),
-            // CHANGED: streak/recovery/schedule now use real API data
-            // FutureBuilder<Map<String, dynamic>?>(
-            //   future: _statsFuture,
-            //   builder: (context, snapshot) {
-            //     final stats = snapshot.data?['data'];
-            //     final streak = (stats?['streak'] ?? 0) as int;
-            //     final nextSession =
-            //         stats?['nextSession'] as String? ?? 'No session scheduled';
-            //     final recovery = (stats?['recoveryProgress'] ?? 0.0).toDouble();
-
-            //     return Column(
-            //       children: [
-            //         _buildStreakCard(streak),
-            //         _buildRecoverySnapshotCard(recovery),
-            //         _buildUpcomingScheduleCard(nextSession),
-            //       ],
-            //     );
-            //   },
-            // ),
+            _buildStreakCard(streak),
+            _buildRecoverySnapshotCard(recovery),
+            _buildUpcomingScheduleCard(nextSession),
             _buildQuickActionsSection(),
             const SizedBox(height: 24),
           ],

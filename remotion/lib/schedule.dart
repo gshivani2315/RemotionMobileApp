@@ -1,50 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:remotion/services/api_service.dart';
 
-class SchedulePage extends StatelessWidget {
+class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Shared Physio Data
-    const String myPhysio = "Dr. Arjun Sharma";
+  State<SchedulePage> createState() => _SchedulePageState();
+}
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "My Schedule", 
-          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B5550))
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              backgroundColor: const Color(0xFF1B5550).withOpacity(0.1),
-              child: const Icon(Icons.person, color: Color(0xFF1B5550)),
+class _SchedulePageState extends State<SchedulePage> {
+  final ApiService _apiService = ApiService();
+  late Future<Map<String, dynamic>?> _statsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _statsFuture = _apiService.getDashboardStats();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _statsFuture,
+      builder: (context, snapshot) {
+        String myPhysio = "Loading...";
+        
+        if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.hasData && snapshot.data != null) {
+            myPhysio = snapshot.data!['data']?['physioName'] ?? "Not Assigned";
+          } else {
+            myPhysio = "Unavailable";
+          }
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              "My Schedule", 
+              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B5550))
             ),
-          )
-        ],
-      ),
-      body: Column(
-        children: [
-          // Persistent Physio Header
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF9F835F).withOpacity(0.1), // Using your Motivation/Accent color
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.medical_services, color: Color(0xFF9F835F), size: 20),
-                const SizedBox(width: 10),
-                const Text("Assigned Physio: ", style: TextStyle(fontWeight: FontWeight.w500)),
-                Text(myPhysio, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B5550))),
-              ],
-            ),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: CircleAvatar(
+                  backgroundColor: const Color(0xFF1B5550).withOpacity(0.1),
+                  child: const Icon(Icons.person, color: Color(0xFF1B5550)),
+                ),
+              )
+            ],
           ),
+          body: Column(
+            children: [
+              // Persistent Physio Header
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF9F835F).withOpacity(0.1), // Using your Motivation/Accent color
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.medical_services, color: Color(0xFF9F835F), size: 20),
+                    const SizedBox(width: 10),
+                    const Text("Assigned Physio: ", style: TextStyle(fontWeight: FontWeight.w500)),
+                    Text(myPhysio, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B5550))),
+                  ],
+                ),
+              ),
           
           Expanded(
             child: ListView(
@@ -76,12 +101,19 @@ class SchedulePage extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF1B5550),
-        onPressed: () {},
-        icon: const Icon(Icons.message, color: Colors.white),
-        label: const Text("Chat with Dr. Arjun", style: TextStyle(color: Colors.white)),
-      ),
+          floatingActionButton: FloatingActionButton.extended(
+            backgroundColor: const Color(0xFF1B5550),
+            onPressed: () {},
+            icon: const Icon(Icons.message, color: Colors.white),
+            label: Text(
+              myPhysio == "Loading..." || myPhysio == "Unavailable" || myPhysio == "Not Assigned" 
+                ? "Chat with Physio" 
+                : "Chat with ${myPhysio.split(' ')[0]}", 
+              style: const TextStyle(color: Colors.white)
+            ),
+          ),
+        );
+      }
     );
   }
 

@@ -1,4 +1,4 @@
-import { getProgressDoc } from "../services/firebaseService.js";
+import { getProgressDoc, getUserDoc, db, Collections } from "../services/firebaseService.js";
 
 /**
  * GET /api/dashboard/stats
@@ -8,8 +8,11 @@ export const getDashboardStats = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    // Get progress data from Firestore
-    const progressData = await getProgressDoc(userId);
+    // Get progress data and user data from Firestore in parallel
+    const [progressData, userData] = await Promise.all([
+      getProgressDoc(userId),
+      getUserDoc(userId)
+    ]);
 
     if (!progressData) {
       return res.status(404).json({
@@ -18,9 +21,30 @@ export const getDashboardStats = async (req, res) => {
       });
     }
 
+    // Determine User Name (fallback to email or 'User')
+    const userName = userData?.name || userData?.displayName || userData?.email || "User";
+
+    // Determine Physiotherapist Name
+    let physioName = "Not Assigned";
+    const therapistId = userData?.assignedTherapist;
+    
+    if (therapistId) {
+      try {
+        const therapistDoc = await db.collection(Collections.PHYSIOTHERAPISTS).doc(therapistId).get();
+        if (therapistDoc.exists) {
+          const tData = therapistDoc.data();
+          physioName = tData.name || tData.displayName || tData.email || "Not Assigned";
+        }
+      } catch (err) {
+        console.error("Error fetching physiotherapist details:", err);
+      }
+    }
+
     // Extract relevant stats for dashboard
     const stats = {
       userId,
+      userName,
+      physioName,
       streak: progressData.streak?.days || 0,
       nextSession: "Check your schedule", // This could be pulled from a sessions collection
       recoveryProgress: progressData.recoveryLevel?.percentage || 0,
