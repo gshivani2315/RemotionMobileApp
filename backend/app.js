@@ -16,6 +16,8 @@ import { verifyToken } from "./middleware/authMiddleware.js";
 import { getProfile } from "./controllers/userController.js";
 import dashboardRouter from "./routes/dashboard.js";
 import progressRouter from "./routes/progress.js";
+import chatRouter from "./routes/chat.js";
+import patientRouter from "./routes/patients.js";
 
 const app = express();
 const PORT = process.env.PORT;
@@ -60,6 +62,8 @@ app.get("/", (req, res) => res.send("ReMotion API is running."));
 app.get("/api/profile", verifyToken, getProfile);
 app.use("/api/dashboard", verifyToken, dashboardRouter);
 app.use("/api/progress", verifyToken, progressRouter);
+app.use("/api/chat", chatRouter);
+app.use("/api/patients", patientRouter);
 // 404
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found." });

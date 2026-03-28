@@ -26,7 +26,8 @@ export const getDashboardStats = async (req, res) => {
 
     // Determine Physiotherapist Name
     let physioName = "Not Assigned";
-    const therapistId = userData?.assignedTherapist;
+    // const therapistId = userData?.assignedTherapist;
+    const therapistId = userData?.physiotherapist_assigned;
     
     if (therapistId) {
       try {
@@ -45,6 +46,7 @@ export const getDashboardStats = async (req, res) => {
       userId,
       userName,
       physioName,
+      physiotherapist_assigned: therapistId,
       streak: progressData.streak?.days || 0,
       nextSession: "Check your schedule", // This could be pulled from a sessions collection
       recoveryProgress: progressData.recoveryLevel?.percentage || 0,

@@ -8,9 +8,9 @@ class ApiService {
   static String get _baseUrl {
     if (kIsWeb) return 'http://localhost:3001';
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3001'; // Android emulator → host machine
+      return 'http://10.0.2.2:3001';
     }
-    return 'http://localhost:3001'; // Windows, Mac, Linux
+    return 'http://localhost:3001';
   }
 
   Future<String?> _getAuthToken() async {
@@ -75,7 +75,9 @@ class ApiService {
     try {
       final response = await http
           .get(
-            Uri.parse('$_baseUrl/api/progress'), // FIX 2: was $baseUrl (undefined)
+            Uri.parse(
+              '$_baseUrl/api/progress',
+            ), // FIX 2: was $baseUrl (undefined)
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -103,7 +105,9 @@ class ApiService {
     try {
       final response = await http
           .post(
-            Uri.parse('$_baseUrl/api/progress/level-up-seen'), // FIX 4: was $baseUrl
+            Uri.parse(
+              '$_baseUrl/api/progress/level-up-seen',
+            ), // FIX 4: was $baseUrl
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -114,6 +118,78 @@ class ApiService {
       return response.statusCode == 200;
     } catch (e) {
       debugPrint('Error marking level up seen: $e');
+      return false;
+    }
+  }
+
+  /// Fetches the list of exercises assigned to the patient
+  Future<Map<String, dynamic>?> getAssignedExercises() async {
+    final token = await _getAuthToken();
+    if (token == null) return null;
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/api/patients/exercises/assigned'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      debugPrint('Error fetching assigned exercises: ${response.statusCode}');
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching assigned exercises: $e');
+      return null;
+    }
+  }
+
+  Future<List<dynamic>> getChatMessages(String physioId) async {
+    final token = await _getAuthToken();
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/chat/patient-to-physio/$physioId/messages'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['messages'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching chat messages: $e');
+      return [];
+    }
+  }
+
+  Future<bool> sendChatMessage(String physioId, String content) async {
+    final token = await _getAuthToken();
+    if (token == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/chat/patient-to-physio/$physioId/message'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'content': content}),
+      );
+
+      return response.statusCode == 201;
+    } catch (e) {
+      debugPrint('Error sending chat message: $e');
       return false;
     }
   }
@@ -153,8 +229,9 @@ class ProgressData {
           .map((e) => TimelineItem.fromJson(e))
           .toList(),
       bodyMap: BodyMapData.fromJson(json['bodyMap'] ?? {}),
-      movementQuality:
-          MovementQualityData.fromJson(json['movementQuality'] ?? {}),
+      movementQuality: MovementQualityData.fromJson(
+        json['movementQuality'] ?? {},
+      ),
       achievements: AchievementsData.fromJson(json['achievements'] ?? {}),
       physioNote: PhysioNoteData.fromJson(json['physioNote'] ?? {}),
     );
@@ -217,10 +294,7 @@ class XpData {
   XpData({required this.current, required this.max});
 
   factory XpData.fromJson(Map<String, dynamic> json) {
-    return XpData(
-      current: json['current'] ?? 0,
-      max: json['max'] ?? 1000,
-    );
+    return XpData(current: json['current'] ?? 0, max: json['max'] ?? 1000);
   }
 
   double get progress => max > 0 ? current / max : 0;
@@ -345,10 +419,7 @@ class MovementStat {
   MovementStat({required this.value, required this.label});
 
   factory MovementStat.fromJson(Map<String, dynamic> json) {
-    return MovementStat(
-      value: json['value'] ?? 0,
-      label: json['label'] ?? '',
-    );
+    return MovementStat(value: json['value'] ?? 0, label: json['label'] ?? '');
   }
 
   double get percentage => value / 100;
