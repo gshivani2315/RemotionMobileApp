@@ -1,69 +1,64 @@
-import { getProgressDoc, getUserDoc, db, Collections } from "../services/firebaseService.js";
+import { db } from "../services/firebaseService.js";
 
-/**
- * GET /api/dashboard/stats
- * Fetch basic stats for dashboard display
- */
 export const getDashboardStats = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    // Get progress data and user data from Firestore in parallel
-    const [progressData, userData] = await Promise.all([
-      getProgressDoc(userId),
-      getUserDoc(userId)
-    ]);
+    // 1. Fetch User Data (Parallel to progress query)
+    const userDataSnap = await db.collection("Users").doc(userId).get();
+    const userData = userDataSnap.exists ? userDataSnap.data() : null;
 
-    if (!progressData) {
-      return res.status(404).json({
-        success: false,
-        error: "Progress data not found. Please initialize your profile.",
-      });
-    }
+    // 2. Fetch the LATEST progress document (Matches getProgress logic)
+    const progressSnap = await db.collection("Users")
+      .doc(userId)
+      .collection("app_progress")
+      .orderBy("updatedAt", "desc")
+      .limit(1)
+      .get();
 
-    // Determine User Name (fallback to email or 'User')
-    const userName = userData?.name || userData?.displayName || userData?.email || "User";
+    // Default progress data if none exists
+    let progressData = progressSnap.empty ? null : progressSnap.docs[0].data();
 
-    // Determine Physiotherapist Name
+    // 3. Resolve Physiotherapist Details
     let physioName = "Not Assigned";
-    // const therapistId = userData?.assignedTherapist;
-    const therapistId = userData?.physiotherapist_assigned;
+    // This is the ID string (e.g., "physio_123")
+    const therapistId = userData?.physiotherapist_assigned || null;
     
     if (therapistId) {
-      try {
-        const therapistDoc = await db.collection(Collections.PHYSIOTHERAPISTS).doc(therapistId).get();
-        if (therapistDoc.exists) {
-          const tData = therapistDoc.data();
-          physioName = tData.name || tData.displayName || tData.email || "Not Assigned";
-        }
-      } catch (err) {
-        console.error("Error fetching physiotherapist details:", err);
+      // Note: Ensure your collection name is "Physiotherapists" (plural/capitalized) as per your DB
+      const tDoc = await db.collection("Physiotherapists").doc(therapistId).get();
+      if (tDoc.exists) {
+        const tData = tDoc.data();
+        physioName = tData.name || tData.displayName || "Physio";
       }
     }
 
-    // Extract relevant stats for dashboard
+    // 4. Map the response
     const stats = {
-      userId,
-      userName,
-      physioName,
-      physiotherapist_assigned: therapistId,
-      streak: progressData.streak?.days || 0,
-      nextSession: "Check your schedule", // This could be pulled from a sessions collection
-      recoveryProgress: progressData.recoveryLevel?.percentage || 0,
-      currentLevel: progressData.recoveryLevel?.level || 1,
-      xpProgress: progressData.recoveryLevel?.xp || { current: 0, max: 1000 },
+      userName: userData?.name || "User",
+      physioName: physioName,
+      
+      // CRITICAL FIX: Send the actual ID back so Flutter can open the chat
+      physiotherapist_assigned: therapistId, 
+      
+      // Safe navigation for progress fields
+      recoveryProgress: progressData?.recoveryLevel?.percentage || 0,
+      streak: progressData?.levelUp?.streak || progressData?.streak?.days || 0,
+      currentLevel: progressData?.recoveryLevel?.level || 1,
+      nextSession: "Check your schedule",
     };
 
-    res.json({
-      success: true,
-      data: stats,
+    res.json({ 
+      success: true, 
+      data: stats 
     });
+
   } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch dashboard stats",
-      message: error.message,
+    console.error("Dashboard Stats Error:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Internal Server Error",
+      message: error.message 
     });
   }
 };

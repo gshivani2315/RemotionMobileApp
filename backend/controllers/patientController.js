@@ -2,9 +2,9 @@ import { db } from "../services/firebaseService.js";
 
 export const getAssignedExercises = async (req, res) => {
   try {
-    const uid = req.user.uid; // From verifyToken middleware
+    const uid = req.user.uid; 
 
-    // 1. Fetch program configurations from the user's sub-collection
+    // 1. Fetch program configurations
     const configSnap = await db.collection("Users").doc(uid).collection("program_configs").get();
 
     if (configSnap.empty) {
@@ -34,16 +34,24 @@ export const getAssignedExercises = async (req, res) => {
       return res.status(200).json({ status: "success", data: { exercises: [], count: 0 } });
     }
 
-    // 3. Fetch Master details (Names, Videos, etc.)
+    // 3. Fetch Master details from global Exercises collection
     const exercisesSnap = await db.collection("Exercises")
       .where("__name__", "in", uniqueExerciseIds)
       .get();
+    
+    // 4. Check for completions TODAY only
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
 
-    // 4. Fetch historical progress to see if they've ever done it
-    const progressSnap = await db.collection("Users").doc(uid).collection("daily_progress").get();
-    const completedIds = progressSnap.docs.map(d => d.data().exerciseId);
+    const progressSnap = await db.collection("Users")
+      .doc(uid)
+      .collection("daily_progress")
+      .where("completedAt", ">=", today) 
+      .get();
 
-    // 5. Merge logic for Flutter
+    const completedTodayIds = progressSnap.docs.map(d => d.data().exerciseId);
+
+    // 5. Build Response for Flutter
     const exercises = exercisesSnap.docs.map(doc => {
       const masterData = doc.data();
       const override = masterOverrides[doc.id] || {};
@@ -54,7 +62,8 @@ export const getAssignedExercises = async (req, res) => {
         sets: override.customSets || masterData.defaultSets || 3,
         reps: override.customReps || masterData.defaultReps || 10,
         instruction: masterData.instructions || "Follow the video carefully.",
-        hasEverCompleted: completedIds.includes(doc.id),
+        videoUrl: masterData.videoUrl || "", 
+        hasEverCompleted: completedTodayIds.includes(doc.id), 
       };
     });
 

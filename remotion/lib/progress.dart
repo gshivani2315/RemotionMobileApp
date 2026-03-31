@@ -758,8 +758,11 @@ class BodyMapCard extends StatelessWidget {
   List<Widget> _buildZoneOverlays() {
     List<Widget> overlays = [];
     for (var zone in data.zones) {
+      print(
+        "Area: ${zone.area}, Status: ${zone.status}, Intensity: ${zone.intensity}",
+      );
       Color color;
-      switch (zone.status) {
+      switch (zone.status.toLowerCase()) {
         case 'focus':
           color = Colors.redAccent;
           break;
@@ -768,50 +771,57 @@ class BodyMapCard extends StatelessWidget {
           break;
         default:
           color = Colors.grey;
+          break;
       }
 
-      Positioned overlay;
-      switch (zone.area) {
-        case 'shoulders':
-          overlay = Positioned(
-            top: 60,
-            child: Container(
-              width: 60,
-              height: 10,
-              color: color.withOpacity(0.6 + zone.intensity * 0.4),
+      Widget? overlay;
+      final areaKey = zone.area.toLowerCase();
+
+      // We use a high opacity base (0.5) + intensity to ensure visibility
+      final double activeOpacity = 0.5 + (zone.intensity * 0.5).clamp(0.0, 0.5);
+
+      if (areaKey == 'shoulders' || areaKey == 'arms') {
+        overlay = Positioned(
+          top: 65, // Positioned at shoulder level
+          left: 60, // Centers a 80-width box on a 200-width icon area
+          child: Container(
+            width: 80,
+            height: 18,
+            decoration: BoxDecoration(
+              color: color.withOpacity(activeOpacity),
+              borderRadius: BorderRadius.circular(4),
             ),
-          );
-          break;
-        case 'torso':
-          overlay = Positioned(
-            top: 80,
-            child: Container(
-              width: 50,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.6 + zone.intensity * 0.4),
-                borderRadius: BorderRadius.circular(10),
-              ),
+          ),
+        );
+      } else if (areaKey == 'torso' || areaKey == 'chest') {
+        overlay = Positioned(
+          top: 85, // Positioned at chest level
+          left: 80, // Centers a 40-width box
+          child: Container(
+            width: 40,
+            height: 45,
+            decoration: BoxDecoration(
+              color: color.withOpacity(activeOpacity),
+              borderRadius: BorderRadius.circular(8),
             ),
-          );
-          break;
-        case 'legs':
-          overlay = Positioned(
-            top: 130,
-            child: Container(
-              width: 30,
-              height: 50,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.3 + zone.intensity * 0.4),
-                borderRadius: BorderRadius.circular(8),
-              ),
+          ),
+        );
+      } else if (areaKey == 'legs') {
+        overlay = Positioned(
+          top: 135, // Positioned at leg level
+          left: 75,
+          child: Container(
+            width: 50,
+            height: 55,
+            decoration: BoxDecoration(
+              color: color.withOpacity(activeOpacity),
+              borderRadius: BorderRadius.circular(8),
             ),
-          );
-          break;
-        default:
-          continue;
+          ),
+        );
       }
-      overlays.add(overlay);
+
+      if (overlay != null) overlays.add(overlay);
     }
     return overlays;
   }

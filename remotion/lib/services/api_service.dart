@@ -279,8 +279,8 @@ class RecoveryLevelData {
 
   factory RecoveryLevelData.fromJson(Map<String, dynamic> json) {
     return RecoveryLevelData(
-      level: json['level'] ?? 1,
-      percentage: (json['percentage'] ?? 0.0).toDouble(),
+      level: (json['level'] as num).toInt(),
+      percentage: (json['percentage'] as num).toDouble(),
       xp: XpData.fromJson(json['xp'] ?? {}),
       stats: StatsData.fromJson(json['stats'] ?? {}),
     );
@@ -313,9 +313,9 @@ class StatsData {
 
   factory StatsData.fromJson(Map<String, dynamic> json) {
     return StatsData(
-      sleepQuality: (json['sleepQuality'] ?? 0.0).toDouble(),
-      hydration: (json['hydration'] ?? 0.0).toDouble(),
-      mobility: (json['mobility'] ?? 0.0).toDouble(),
+      sleepQuality: (json['sleepQuality'] as num? ?? 0.0).toDouble(),
+      hydration: (json['hydration'] as num? ?? 0.0).toDouble(),
+      mobility: (json['mobility'] as num? ?? 0.0).toDouble(),
     );
   }
 }
@@ -328,7 +328,7 @@ class StreakData {
 
   factory StreakData.fromJson(Map<String, dynamic> json) {
     return StreakData(
-      days: json['days'] ?? 0,
+      days: (json['days'] as num).toInt(),
       isActive: json['isActive'] ?? false,
     );
   }
@@ -419,7 +419,10 @@ class MovementStat {
   MovementStat({required this.value, required this.label});
 
   factory MovementStat.fromJson(Map<String, dynamic> json) {
-    return MovementStat(value: json['value'] ?? 0, label: json['label'] ?? '');
+    return MovementStat(
+      value: (json['value'] as num? ?? 0).toInt(),
+      label: json['label'] ?? '',
+    );
   }
 
   double get percentage => value / 100;

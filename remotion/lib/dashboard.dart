@@ -51,21 +51,131 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
-  late Future<Map<String, dynamic>?> _profileFuture;
   late Future<Map<String, dynamic>?> _statsFuture;
 
   @override
   void initState() {
     super.initState();
-    _profileFuture = _apiService.getProtectedData();
-    _statsFuture = _apiService.getDashboardStats();
+    _refreshData();
   }
 
-  void _retryConnection() {
+  void _refreshData() {
     setState(() {
-      _profileFuture = _apiService.getProtectedData();
       _statsFuture = _apiService.getDashboardStats();
     });
+  }
+
+  // --- 1. PROGRAM DETAILS POPUP ---
+  void _showProgramDetails({
+    required String nextSession,
+    required double recovery,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Active Recovery Plan",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E6F6B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Phase 1: Foundation & Mobility",
+              style: TextStyle(color: Colors.grey),
+            ),
+            const Divider(height: 32),
+            _programDetailRow(
+              Icons.flag_circle_outlined,
+              "Current Goal",
+              "Restore baseline range of motion",
+            ),
+            const SizedBox(height: 16),
+            _programDetailRow(
+              Icons.event_available_outlined,
+              "Next Activity",
+              nextSession,
+            ),
+            const SizedBox(height: 16),
+            _programDetailRow(
+              Icons.trending_up_rounded,
+              "Current Progress",
+              "${(recovery * 100).toInt()}% Complete",
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E6F6B),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "Close",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _programDetailRow(IconData icon, String title, String value) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF1E6F6B), size: 28),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   void _confirmLogout() {
@@ -73,7 +183,7 @@ class _DashboardPageState extends State<DashboardPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Sign Out"),
-        content: const Text("Are you sure you want to log out of ReMotion?"),
+        content: const Text("Are you sure you want to log out?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -99,296 +209,252 @@ class _DashboardPageState extends State<DashboardPage> {
     return Theme(
       data: reMotionTheme,
       child: Scaffold(
-        backgroundColor: reMotionTheme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: const Text('ReMotion Dashboard'),
+          title: const Text('ReMotion'),
+          centerTitle: true,
           actions: [
             IconButton(
               icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-              tooltip: "Logout",
               onPressed: _confirmLogout,
             ),
           ],
         ),
-        body: FutureBuilder<Map<String, dynamic>?>(
-          future: _statsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: RefreshIndicator(
+          onRefresh: () async => _refreshData(),
+          child: FutureBuilder<Map<String, dynamic>?>(
+            future: _statsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (snapshot.hasError || snapshot.data == null) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.cloud_off_rounded,
-                        size: 80,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      // CHANGED: removed "localhost:3000" — never expose
-                      // server details or infrastructure info to end users
-                      const Text(
-                        "Could not reach server",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        "Please check your connection and try again.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _retryConnection,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text("Retry"),
-                      ),
-                    ],
-                  ),
-                ),
+              if (snapshot.hasError || snapshot.data == null) {
+                return _buildErrorView();
+              }
+
+              final stats = snapshot.data!['data'] ?? {};
+
+              return _buildDashboardContent(
+                userName: stats['userName'] ?? 'User',
+                physioName: stats['physioName'] ?? 'Not Assigned',
+                streak: (stats['streak'] ?? 0) as int,
+                recovery: (stats['recoveryProgress'] ?? 0.0).toDouble(),
+                level: (stats['currentLevel'] ?? 1) as int,
+                nextSession: stats['nextSession'] ?? 'Check schedule',
               );
-            }
-
-            final stats = snapshot.data!['data'];
-            final userName = stats?['userName'] ?? 'User';
-            final physioName = stats?['physioName'] ?? 'Not Assigned';
-            final streak = (stats?['streak'] ?? 0) as int;
-            final nextSession = stats?['nextSession'] as String? ?? 'No session scheduled';
-            final recovery = (stats?['recoveryProgress'] ?? 0.0).toDouble();
-
-            return _buildDashboardContent(userName, physioName, streak, nextSession, recovery);
-          },
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDashboardContent(String userName, String physioName, int streak, String nextSession, double recovery) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                "Welcome back,\n$userName",
-                style: reMotionTheme.textTheme.titleLarge,
-              ),
+  Widget _buildDashboardContent({
+    required String userName,
+    required String physioName,
+    required int streak,
+    required double recovery,
+    required int level,
+    required String nextSession,
+  }) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(
+              "Hello, $userName!",
+              style: reMotionTheme.textTheme.titleLarge,
             ),
-            _buildTodayStatusCard(),
-            _buildStreakCard(streak),
-            _buildRecoverySnapshotCard(recovery),
-            _buildUpcomingScheduleCard(nextSession),
-            _buildQuickActionsSection(),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+
+          _buildLevelHeader(level),
+          _buildStreakCard(streak),
+          _buildRecoveryCard(recovery, physioName),
+
+          // Updated: Active Program Card now triggers popup
+          _buildProgramAction(nextSession, recovery),
+
+          const SizedBox(height: 30),
+        ],
       ),
     );
   }
 
-  Widget _buildTodayStatusCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  "Today's Rehab",
-                  style: reMotionTheme.textTheme.titleMedium,
-                ),
-                const Spacer(),
-                const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF2FB7A3),
-                  size: 28,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Row(
-              children: [
-                Icon(
-                  Icons.access_time_rounded,
-                  size: 20,
-                  color: Color(0xFF9AA5A1),
-                ),
-                SizedBox(width: 8),
-                Text(
-                  "Completed",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2FB7A3),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+  Widget _buildLevelHeader(int level) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E6F6B),
+        borderRadius: BorderRadius.circular(20),
       ),
-    );
-  }
-
-  // CHANGED: accepts real value from API instead of hardcoded "5-day" / 0.8
-  Widget _buildStreakCard(int streak) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.local_fire_department,
-                  color: Color(0xFFC8A96A),
-                  size: 28,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "$streak-day streak",
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFC8A96A),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: (streak / 10).clamp(0.0, 1.0),
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // CHANGED: accepts real recovery % from API
-  Widget _buildRecoverySnapshotCard(double progress) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Recovery Snapshot",
-              style: reMotionTheme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "${(progress * 100).toInt()}%",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "Latest note from physiotherapist:",
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const Text(
-              "Good progress on knee flexion. Continue exercises.",
-              style: TextStyle(color: Colors.black54),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // CHANGED: accepts real next session string from API
-  Widget _buildUpcomingScheduleCard(String nextSession) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Upcoming Sessions",
-              style: reMotionTheme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(
-                Icons.calendar_today,
-                color: Color(0xFF1E6F6B),
-              ),
-              title: const Text("Home Exercise"),
-              subtitle: Text(nextSession), // CHANGED: real data
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Expanded(
-            child: _actionBtn(Icons.report, "Report Pain", Colors.redAccent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _actionBtn(
-              Icons.chat,
-              "Message Doc",
-              const Color(0xFF1E6F6B),
-            ),
+          const Icon(Icons.stars_rounded, color: Color(0xFFC8A96A), size: 40),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Recovery Status",
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              Text(
+                "Level $level Athlete",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _actionBtn(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildStreakCard(int streak) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.local_fire_department_rounded,
+              color: Colors.orange,
+              size: 32,
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "$streak-Day Streak",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Text(
+                  "Consistency is key to recovery!",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+    );
+  }
+
+  Widget _buildRecoveryCard(double progress, String physio) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Your Progress",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 12,
+                backgroundColor: const Color(0xFFF1F5F5),
+                color: const Color(0xFF2FB7A3),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "${(progress * 100).toInt()}% Recovered",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "Physio: $physio",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgramAction(String nextSession, double recovery) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: InkWell(
+        onTap: () =>
+            _showProgramDetails(nextSession: nextSession, recovery: recovery),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E6F6B).withOpacity(0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF1E6F6B).withOpacity(0.2)),
           ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.assignment_turned_in_rounded,
+                color: Color(0xFF1E6F6B),
+                size: 30,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Active Program",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      nextSession,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Color(0xFF1E6F6B),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text("Unable to load dashboard"),
+          const SizedBox(height: 20),
+          ElevatedButton(onPressed: _refreshData, child: const Text("Retry")),
         ],
       ),
     );

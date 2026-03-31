@@ -1,126 +1,112 @@
-import {
-  getProgressDoc,
-  updateProgressDoc,
-  initializeUserProgress,
-  getUserDoc,
-} from "../services/firebaseService.js";
+import admin from "firebase-admin";
+const db = admin.firestore();
 
 // ---------------------------------------------------------------------------
 // GET /api/progress
-// Merges real user data (streak, adherence) with app_progress/current doc
 // ---------------------------------------------------------------------------
 export const getProgress = async (req, res) => {
   try {
     const userId = req.user?.uid;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    // Fetch both documents in parallel
-    let [progressData, userData] = await Promise.all([
-      getProgressDoc(userId),
-      getUserDoc(userId),
-    ]);
+    // 1. Fetch the LATEST progress document from the subcollection
+    const progressSnap = await db.collection("Users")
+      .doc(userId)
+      .collection("app_progress")
+      .orderBy("updatedAt", "desc")
+      .limit(1)
+      .get();
 
-    // First-time user — initialise their progress document
-    if (!progressData) {
-      progressData = await initializeUserProgress(userId);
+    let progressData;
+
+    if (progressSnap.empty) {
+      progressData = {
+        streak: { days: 0, isActive: false },
+        recoveryLevel: { level: 1, percentage: 0, xp: { current: 0, max: 1000 }, stats: { sleepQuality: 0.5, hydration: 0.5, mobility: 0.5 } },
+        movementQuality: { flexibility: { value: 0 }, strength: { value: 0 }, endurance: { value: 0 }, balance: { value: 0 } },
+        // CHANGE THIS LINE: Provide default zones so Flutter has something to color
+        bodyMap: { 
+          zones: [
+            { area: "shoulders", status: "good", intensity: 0.5 },
+            { area: "torso", status: "focus", intensity: 0.8 },
+            { area: "legs", status: "rest", intensity: 0.2 }
+          ] 
+        },
+        achievements: { unlocked: 0, total: 10, progress: 0, badges: [] },
+        timeline: [
+          { label: "STARTED", icon: "eco", completed: true, current: true },
+          { label: "WEEK 1", icon: "fire", completed: false, current: false }
+        ],
+        physioNote: { message: "Welcome to ReMotion!", author: "AI Guide", date: new Date().toISOString() },
+        levelUp: { showLevelUp: false }
+      };
+    } else {
+      progressData = progressSnap.docs[0].data();
     }
 
-    // Pull real values from the user document
-    const realStreak = userData?.streak ?? userData?.adherence_metrics?.streak ?? 0;
-    const sessionsCompleted =
-      userData?.adherenceMetrics?.sessionsCompleted ??
-      userData?.adherence_metrics?.sessions_completed ??
-      0;
-    const adherenceScore = userData?.adherenceScore ?? 0;
-
-    // Derive XP from sessions (each session = 50 XP, cap at max)
-    const xpMax = progressData.recoveryLevel?.xp?.max ?? 1000;
-    const xpCurrent = Math.min(sessionsCompleted * 50, xpMax);
-
-    // Derive recovery level from XP (level up every 1000 XP)
-    const recoveryLevel = Math.max(1, Math.floor(xpCurrent / xpMax) + 1);
-
-    // Derive movement quality from adherence score (scale 0-100)
-    const qualityScore = Math.round(adherenceScore);
-
+    // 2. Map the data directly to the Flutter model requirements
     const response = {
       streak: {
-        days: realStreak,
-        isActive: realStreak > 0,
-        lastActivityDate:
-          userData?.adherence_metrics?.last_active?.toDate?.()?.toISOString() ??
-          userData?.lastActive ??
-          null,
+        days: progressData.streak?.days ?? 0,
+        isActive: progressData.streak?.isActive ?? false,
+        lastActivityDate: progressData.streak?.lastActivityDate ?? null,
       },
       recoveryLevel: {
-        level: progressData.recoveryLevel?.level ?? recoveryLevel,
-        percentage: (xpCurrent / xpMax),
+        level: progressData.recoveryLevel?.level ?? 1,
+        percentage: progressData.recoveryLevel?.percentage ?? 0,
         stats: {
           sleepQuality: progressData.recoveryLevel?.stats?.sleepQuality ?? 0.5,
           hydration: progressData.recoveryLevel?.stats?.hydration ?? 0.5,
           mobility: progressData.recoveryLevel?.stats?.mobility ?? 0.5,
         },
         xp: {
-          current: progressData.recoveryLevel?.xp?.current ?? xpCurrent,
-          max: xpMax,
-          progress: (progressData.recoveryLevel?.xp?.current ?? xpCurrent) / xpMax,
+          current: progressData.recoveryLevel?.xp?.current ?? 0,
+          max: progressData.recoveryLevel?.xp?.max ?? 1000,
+          // Flutter expects 'progress' field for the XP bar
+          progress: progressData.recoveryLevel?.percentage ?? 0, 
         },
       },
       movementQuality: {
         flexibility: {
           label: "FLEXIBILITY",
-          value: progressData.movementQuality?.flexibility?.value ?? qualityScore,
-          percentage: (progressData.movementQuality?.flexibility?.value ?? qualityScore) / 100,
+          value: progressData.movementQuality?.flexibility?.value ?? 0,
+          percentage: (progressData.movementQuality?.flexibility?.value ?? 0) / 100,
         },
         strength: {
           label: "STRENGTH",
-          value: progressData.movementQuality?.strength?.value ?? qualityScore,
-          percentage: (progressData.movementQuality?.strength?.value ?? qualityScore) / 100,
+          value: progressData.movementQuality?.strength?.value ?? 0,
+          percentage: (progressData.movementQuality?.strength?.value ?? 0) / 100,
         },
         endurance: {
           label: "ENDURANCE",
-          value: progressData.movementQuality?.endurance?.value ?? qualityScore,
-          percentage: (progressData.movementQuality?.endurance?.value ?? qualityScore) / 100,
+          value: progressData.movementQuality?.endurance?.value ?? 0,
+          percentage: (progressData.movementQuality?.endurance?.value ?? 0) / 100,
         },
         balance: {
           label: "BALANCE",
-          value: progressData.movementQuality?.balance?.value ?? qualityScore,
-          percentage: (progressData.movementQuality?.balance?.value ?? qualityScore) / 100,
+          value: progressData.movementQuality?.balance?.value ?? 0,
+          percentage: (progressData.movementQuality?.balance?.value ?? 0) / 100,
         },
       },
       bodyMap: {
-        zones: (progressData.bodyMap?.zones ?? []).map((zone) => ({
-          area: zone.area,
-          status: zone.status,
-          intensity: zone.intensity ?? 0,
-        })),
+        zones: progressData.bodyMap?.zones ?? []
       },
       achievements: {
         unlocked: progressData.achievements?.unlocked ?? 0,
         total: progressData.achievements?.total ?? 0,
         progress: progressData.achievements?.progress ?? 0,
-        badges: (progressData.achievements?.badges ?? []).map((badge) => ({
-          id: badge.id,
-          icon: badge.icon,
-          name: badge.name,
-          unlocked: badge.unlocked ?? false,
-        })),
+        badges: progressData.achievements?.badges ?? []
       },
       physioNote: {
-        author: progressData.physioNote?.author ?? "",
+        author: progressData.physioNote?.author ?? "Physio",
         date: progressData.physioNote?.date ?? "",
-        message: progressData.physioNote?.message ?? "",
+        message: progressData.physioNote?.message ?? "Keep going!",
       },
-      timeline: (progressData.timeline ?? []).map((item) => ({
-        label: item.label,
-        icon: item.icon,
-        completed: item.completed ?? false,
-        current: item.current ?? false,
-      })),
+      timeline: progressData.timeline ?? [],
       levelUp: {
         showLevelUp: progressData.levelUp?.showLevelUp ?? false,
         currentLevel: progressData.levelUp?.currentLevel ?? 1,
-        streak: realStreak,
+        streak: progressData.streak?.days ?? 0,
         message: progressData.levelUp?.message ?? "",
         achievement: progressData.levelUp?.achievement ?? "",
       },
@@ -141,11 +127,41 @@ export const markLevelUpSeen = async (req, res) => {
     const userId = req.user?.uid;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    await updateProgressDoc(userId, { "levelUp.showLevelUp": false });
+    // We must find the LATEST document to turn off the flag
+    const latestSnap = await db.collection("Users")
+      .doc(userId)
+      .collection("app_progress")
+      .orderBy("updatedAt", "desc")
+      .limit(1)
+      .get();
+
+    if (!latestSnap.empty) {
+      await latestSnap.docs[0].ref.update({
+        "levelUp.showLevelUp": false,
+        "updatedAt": admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("markLevelUpSeen error:", error);
     return res.status(500).json({ error: "Failed to update level-up status" });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// POST /api/progress/reset
+// ---------------------------------------------------------------------------
+export const resetProgress = async (req, res) => {
+  try {
+    const userId = req.user?.uid;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    await initializeUserProgress(userId);
+    return res.status(200).json({ success: true, message: "Progress reset" });
+  } catch (error) {
+    console.error("resetProgress error:", error);
+    return res.status(500).json({ error: "Failed to reset progress" });
   }
 };
 
@@ -167,21 +183,5 @@ export const updateProgress = async (req, res) => {
   } catch (error) {
     console.error("updateProgress error:", error);
     return res.status(500).json({ error: "Failed to update progress" });
-  }
-};
-
-// ---------------------------------------------------------------------------
-// POST /api/progress/reset
-// ---------------------------------------------------------------------------
-export const resetProgress = async (req, res) => {
-  try {
-    const userId = req.user?.uid;
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-    await initializeUserProgress(userId);
-    return res.status(200).json({ success: true, message: "Progress reset" });
-  } catch (error) {
-    console.error("resetProgress error:", error);
-    return res.status(500).json({ error: "Failed to reset progress" });
   }
 };
